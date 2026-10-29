@@ -125,6 +125,8 @@ public final class EnforcementConsoleModel: ObservableObject {
         ledger = EnforcementLedger(clock: clock, store: store)
         reconciler = EnforcementConsoleModel.makeReconciler(ledger: ledger, server: server, clock: clock)
         launchCount += 1
+        // In-memory UI state goes with the old process; the backend outage setting does not.
+        lastRefresh = "Not refreshed since launch #\(launchCount)"
         await reload()
     }
 
@@ -231,7 +233,11 @@ public struct EnforcementConsoleView: View {
 
                 Section("Ledger audit, newest first") {
                     if model.log.isEmpty {
-                        Text("No signals yet. The user is unknown, so fail-closed features are closed.")
+                        // The audit log lives in memory, so it is empty after a relaunch even
+                        // though the state above was restored from the store.
+                        Text(model.state == nil
+                             ? "No signals yet. The user is unknown, so fail-closed features are closed."
+                             : "No signals since launch #\(model.launchCount). The state above was restored from the store.")
                             .font(.footnote).foregroundStyle(.secondary)
                     } else {
                         ForEach(model.log) { line in
