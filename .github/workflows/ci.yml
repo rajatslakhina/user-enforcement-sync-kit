@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  linux:
+    name: Linux · Swift 6.0 · build (warnings as errors) + test
+    runs-on: ubuntu-latest
+    container: swift:6.0
+    steps:
+      - uses: actions/checkout@v4
+      - name: Clean build, warnings as errors
+        run: rm -rf .build && swift build -Xswiftc -warnings-as-errors
+      - name: Test
+        run: swift test -Xswiftc -warnings-as-errors
+
+  apple:
+    name: macOS 15 · swift test + iOS Simulator builds
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: xcodebuild -version && swift --version
+      - name: swift test (macOS)
+        run: swift test
+      - name: Build UserEnforcement for iOS Simulator
+        run: xcodebuild build -scheme UserEnforcement -destination 'generic/platform=iOS Simulator' -skipPackagePluginValidation
+      - name: Build UserEnforcementUI for iOS Simulator
+        run: xcodebuild build -scheme UserEnforcementUI -destination 'generic/platform=iOS Simulator' -skipPackagePluginValidation
