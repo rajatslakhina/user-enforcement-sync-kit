@@ -4,7 +4,7 @@
 
 `UserEnforcement` is the client half of per-end-user AI enforcement. Your backend learns that the provider has restricted or suspended one end user. This library turns that news into one consistent decision on every device the user owns: **cloud**, **on-device fallback**, or **off**, for each AI feature. It stays correct when pushes arrive out of order, duplicated or after a relaunch, when the backend is down, and when the phone's clock is wrong (given a server time on snapshots — see decision 5).
 
-> Demo app: (added after the companion repo is pushed — see below)
+> **Demo app:** [`user-enforcement-sync-demo-app`](https://github.com/rajatslakhina/user-enforcement-sync-demo-app) is a separate Xcode project that pulls this package from GitHub as a pinned remote dependency. Its README has screenshots from an iOS Simulator run and an eight-step walkthrough.
 
 ---
 
@@ -96,7 +96,7 @@ swift test
 ## Use it
 
 ```swift
-.package(url: "https://github.com/rajatslakhina/user-enforcement-sync-kit.git", from: "1.0.0")
+.package(url: "https://github.com/rajatslakhina/user-enforcement-sync-kit.git", from: "1.0.1")
 ```
 
 ```swift
@@ -143,12 +143,19 @@ _ = await reconciler.refresh(userID: id)
 
 ## Verification
 
-What has actually been checked, and what hasn't yet:
-
-- **Linux, Swift 6.0.3:** a clean build (`rm -rf .build`) with `swift build -Xswiftc -warnings-as-errors` finished with 0 warnings, and `swift test -Xswiftc -warnings-as-errors` ran **78 tests with 0 failures**. The concurrency tests were re-run several times with no flakes.
+- **CI, on every push to `main`** ([Actions tab](https://github.com/rajatslakhina/user-enforcement-sync-kit/actions)). Two jobs:
+  - **Linux:** the `swift:6.0` container does a clean `swift build -Xswiftc -warnings-as-errors`, then `swift test -Xswiftc -warnings-as-errors`.
+  - **macOS 15:** Xcode 16.4 / Swift 6.1.2 runs `swift test`, then `xcodebuild build` of both `UserEnforcement` and `UserEnforcementUI` for a generic iOS Simulator destination.
+  - On the commits tagged `v1.0.0` and `v1.0.1`, both jobs passed. Each `swift test` ran 78 tests with 0 failures, and both iOS Simulator builds succeeded.
+- **On a Mac with Xcode 27.1 (Swift 6.4):** `swift build -Xswiftc -warnings-as-errors` built both modules, including the SwiftUI one. `swift test` ran 78 tests with 0 failures, and both products built for the iOS Simulator.
+- **Linux, Swift 6.0.3, during development:** a clean build with warnings as errors, and 78 tests with 0 failures. The concurrency tests were re-run several times with no flakes.
 - **Mutation checks, run by hand on a scratch copy:** the suite fails when single-flight coalescing is removed (50 fetches instead of 1). It also fails when a known restriction is checked only for never-confirmed users, when the reconciler stops re-tagging fetched signals as snapshots, when the confirmation check in the gate is removed, and when the first confirmation of a revision is throttled away.
-- **Apple platforms:** `UserEnforcementUI` is SwiftUI, so it can't build on Linux. The `apple` CI job (macOS 15, `swift test` plus iOS Simulator builds of both products) is where it compiles. Results are on the [Actions tab](https://github.com/rajatslakhina/user-enforcement-sync-kit/actions); this section is updated once that job has reported.
-- **Simulator:** the companion demo app had not been launched on an iOS Simulator when this was written.
+- **Run on an iOS Simulator:** the companion demo app was built against this package from GitHub and run on an iOS 27.0 Simulator (iPhone 18 Pro). All eight steps of its walkthrough behaved as documented, without a crash. Screenshots are in the [demo README](https://github.com/rajatslakhina/user-enforcement-sync-demo-app#screenshots). The run against 1.0.0 turned up one wrong line in the console (see Releases), and the walkthrough was repeated on 1.0.1.
+
+## Releases
+
+- **1.0.1:** console fix. After "Relaunch app (keep store)" the audit log is empty, because it lives in memory. The console used to say the user was unknown, even though the state shown above it had been restored from the store. The empty-log text now depends on whether a state exists, and the last-refresh line resets with the simulated process. No change to `UserEnforcement`.
+- **1.0.0:** first release.
 
 ## License
 
